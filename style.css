@@ -430,13 +430,14 @@ footer {
 }
 
 .copyright a {
-  color: #9CA3AF;
+  color: #fff;
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 .copyright a:hover {
-  color: #ffffff;
+  color: #9CA3AF;
+  text-decoration: underline;
 }
 
 .footer-links {
