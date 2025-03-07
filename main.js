@@ -1,0 +1,311 @@
+import './style.css'
+import $ from 'jquery'
+import AOS from 'aos'
+import * as THREE from 'three'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+
+// Initialize AOS
+AOS.init({
+  duration: 1000,
+  once: true,
+  offset: 100
+})
+
+// Initialize Three.js
+const container = document.getElementById('threejs-container');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+
+// Create renderer with smaller size
+const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+container.appendChild(renderer.domElement);
+
+// Add orbit controls for mouse interaction
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.rotateSpeed = 0.5;
+controls.enableZoom = false; // Disable zooming for better UX
+
+// Function to create circular sprites
+function createCircularSprite(imagePath) {
+  // Create a canvas to draw the circular image
+  const canvas = document.createElement('canvas');
+  canvas.classList.add('solar-ai')
+  const size = 400; // Canvas size (power of 2 for textures)
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  
+  // Load the image
+  const img = new Image();
+  img.onload = () => {
+    // Draw circular clipping path
+    ctx.beginPath();
+    ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    
+    // Draw image with white circular background
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, size, size);
+    
+    // Calculate dimensions to maintain aspect ratio
+    const aspectRatio = img.width / img.height;
+    let drawWidth, drawHeight, offsetX, offsetY;
+    
+    if (aspectRatio > 1) {
+      drawHeight = size;
+      drawWidth = size * aspectRatio;
+      offsetX = (size - drawWidth) / 2;
+      offsetY = 0;
+    } else {
+      drawWidth = size;
+      drawHeight = size / aspectRatio;
+      offsetX = 0;
+      offsetY = (size - drawHeight) / 2;
+    }
+    
+    // Draw the image centered
+    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+    
+    // Update the texture
+    texture.needsUpdate = true;
+  };
+  img.src = imagePath;
+  
+  // Create texture from canvas
+  const texture = new THREE.CanvasTexture(canvas);
+  const material = new THREE.SpriteMaterial({ map: texture });
+  const sprite = new THREE.Sprite(material);
+  
+  return { sprite, texture };
+}
+
+// Function to create orbit line
+function createOrbitLine(radius, yFactor = 0.8) {
+  const points = [];
+  const segments = 128; // More segments for smoother curves
+  
+  for (let i = 0; i <= segments; i++) {
+    const angle = (i / segments) * Math.PI * 2;
+    points.push(
+      new THREE.Vector3(
+        Math.cos(angle) * radius,
+        Math.sin(angle) * radius * yFactor,
+        0
+      )
+    );
+  }
+  
+  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  const material = new THREE.LineBasicMaterial({ 
+    color: 0xcccccc, 
+    transparent: true, 
+    opacity: 0.15 // More subtle orbit lines
+  });
+  return new THREE.Line(geometry, material);
+}
+
+// Load central logo texture
+const centralLogoTexture = new THREE.TextureLoader().load('/logos/logo-desktop-mini-dark.png');
+const centralLogoMaterial = new THREE.SpriteMaterial({ map: centralLogoTexture });
+const centralLogo = new THREE.Sprite(centralLogoMaterial);
+centralLogo.scale.set(3, 3, 3); // Increased from 2, 2, 2
+scene.add(centralLogo);
+
+// Create orbiting logos with visible orbits
+const logos = [
+  '/logos/amazon.png',
+  '/logos/anthropic.png',
+  '/logos/claude-3.png',
+  '/logos/dall-e.png',
+  '/logos/deepseek.png',
+  '/logos/gemini.png',
+  '/logos/grok.png',
+  '/logos/mistral.png',
+  '/logos/stability-ai.png',
+  '/logos/meta-ai.png',
+  '/logos/qwen-ai.png',
+  '/logos/yi.png',
+];
+
+// Function to create orbiting logos with circular masks
+const orbitingLogos = logos.map((logo, index) => {
+  const { sprite, texture } = createCircularSprite(logo);
+  sprite.scale.set(1.8, 1.8, 1.8); // Increased from 1.0, 1.0, 1.0
+  
+  // Calculate shell parameters
+  const shellIndex = Math.floor(index / 3); // 3 logos per shell
+  const logoInShell = index % 3;
+  
+  // Increasing radius for each shell
+  const radius = 4.5 + (shellIndex * 2.2); // Increased from 3 + (shellIndex * 1.5)
+  
+  // Distribute logos evenly in shell
+  const angle = (logoInShell / 3) * Math.PI * 2;
+  
+  // Create unique rotation angles for each shell
+  const xRotation = shellIndex * Math.PI / 3; // 60-degree tilt between shells
+  const yRotation = shellIndex * Math.PI / 4; // 45-degree Y rotation between shells
+  const zRotation = shellIndex * Math.PI / 6; // 30-degree Z rotation for more complexity
+  
+  // Create and add orbit line with multiple rotations
+  const orbitLine = createOrbitLine(radius, 0.8); // Slightly elliptical
+  orbitLine.rotation.x = xRotation;
+  orbitLine.rotation.y = yRotation;
+  orbitLine.rotation.z = zRotation;
+  scene.add(orbitLine);
+  
+  // Create a group for each logo to handle complex rotation
+  const group = new THREE.Group();
+  group.add(sprite);
+  group.rotation.x = xRotation;
+  group.rotation.y = yRotation;
+  group.rotation.z = zRotation;
+  scene.add(group);
+  
+  // Position sprite on its orbit
+  sprite.position.set(
+    Math.cos(angle) * radius,
+    Math.sin(angle) * radius * 0.8, // Elliptical orbit
+    0
+  );
+  
+  return {
+    sprite,
+    texture,
+    group,
+    orbitSpeed: 0.0004 * (1 / (shellIndex + 1)), // Outer shells move slower
+    radius,
+    shellIndex,
+    angleInShell: angle,
+    xRotation,
+    yRotation,
+    zRotation
+  };
+});
+
+// Animation loop with more complex movement
+function animate() {
+  requestAnimationFrame(animate);
+  
+  orbitingLogos.forEach((logo) => {
+    const time = Date.now();
+    
+    // Calculate complex orbital motion
+    const angle = logo.angleInShell + time * logo.orbitSpeed;
+    const verticalOffset = Math.sin(time * 0.001 + logo.shellIndex) * 0.2; // Subtle vertical wobble
+    
+    // Update position with elliptical orbit and vertical motion
+    logo.sprite.position.set(
+      Math.cos(angle) * logo.radius,
+      (Math.sin(angle) * logo.radius * 0.8) + verticalOffset,
+      0
+    );
+    
+    // Add subtle rotation to the entire shell
+    logo.group.rotation.x = logo.xRotation + Math.sin(time * 0.0002) * 0.1;
+    logo.group.rotation.y = logo.yRotation + time * 0.0001;
+    logo.group.rotation.z = logo.zRotation + Math.cos(time * 0.0003) * 0.1;
+  });
+  
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// Adjust camera position for the larger scene
+camera.position.set(16, 10, 16); // Increased from 12, 8, 12
+camera.lookAt(0, 0, 0);
+
+// Handle window resize
+window.addEventListener('resize', () => {
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+});
+
+// Add CSS to make the container smaller
+const style = document.createElement('style');
+style.textContent = `
+  #threejs-container {
+    width: 300px;
+    height: 30rem;
+    margin: 0 auto;
+  }
+  
+  @media (max-width: 768px) {
+    #threejs-container {
+      width: 250px;
+      height: 250px;
+    }
+  }
+`;
+document.head.appendChild(style);
+
+// Start the animation
+animate();
+
+// Initialize Swiper
+const swiper = new Swiper('.testimonials-slider', {
+  slidesPerView: 1,
+  spaceBetween: 30,
+  loop: true,
+  autoplay: {
+    delay: 5000,
+    disableOnInteraction: false,
+  },
+  pagination: {
+    el: '.swiper-pagination',
+    clickable: true,
+  },
+  breakpoints: {
+    768: {
+      slidesPerView: 2,
+    },
+    1024: {
+      slidesPerView: 3,
+    },
+  },
+})
+
+$(document).ready(function() {
+  // Smooth scrolling for navigation links
+  $('nav a').on('click', function(e) {
+    e.preventDefault()
+    const target = $(this).attr('href')
+    $('html, body').animate({
+      scrollTop: $(target).offset().top - 80
+    }, 800)
+  })
+
+  // Mobile menu toggle
+  $('.menu-toggle').on('click', function() {
+    $('.nav-center, .nav-right').toggleClass('active')
+  })
+
+  // Navbar background change on scroll
+  $(window).scroll(function() {
+    if ($(window).scrollTop() > 50) {
+      $('nav').addClass('scrolled')
+    } else {
+      $('nav').removeClass('scrolled')
+    }
+  })
+
+  // Form submission
+  $('#demo-form').on('submit', function(e) {
+    e.preventDefault()
+    const email = $(this).find('input[type="email"]').val()
+    alert('Thank you! We will contact you at: ' + email)
+    $(this).find('input[type="email"]').val('')
+  })
+
+  // Close mobile menu on link click
+  $('.nav-center a, .nav-right button').on('click', function() {
+    if ($(window).width() < 768) {
+      $('.nav-center, .nav-right').removeClass('active')
+    }
+  })
+})
