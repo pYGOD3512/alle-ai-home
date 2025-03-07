@@ -309,3 +309,43 @@ $(document).ready(function() {
     }
   })
 })
+
+document.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('demo-modal');
+  const demoButton = document.querySelector('.secondary-button');
+  const closeModal = document.querySelector('.close-modal');
+  const youtubeFrame = document.getElementById('youtube-frame');
+  const videoUrl = 'https://www.youtube.com/embed/8jI8x8_Vh5U';
+
+  // Open modal
+  demoButton.addEventListener('click', function() {
+    modal.style.display = 'block';
+    youtubeFrame.src = videoUrl;
+    document.body.style.overflow = 'hidden'; // Prevent scrolling
+  });
+
+  // Close modal
+  closeModal.addEventListener('click', function() {
+    modal.style.display = 'none';
+    youtubeFrame.src = ''; // Stop video when closing
+    document.body.style.overflow = ''; // Restore scrolling
+  });
+
+  // Close modal when clicking outside
+  window.addEventListener('click', function(event) {
+    if (event.target === modal) {
+      modal.style.display = 'none';
+      youtubeFrame.src = ''; // Stop video when closing
+      document.body.style.overflow = ''; // Restore scrolling
+    }
+  });
+
+  // Close modal with Escape key
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && modal.style.display === 'block') {
+      modal.style.display = 'none';
+      youtubeFrame.src = ''; // Stop video when closing
+      document.body.style.overflow = ''; // Restore scrolling
+    }
+  });
+});
