@@ -349,3 +349,163 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 });
+
+class FeaturePreview {
+  constructor(element, images) {
+    this.element = element;
+    this.images = images;
+    this.currentIndex = 0;
+    this.currentTheme = 'light';
+    this.autoPlayInterval = null;
+    this.isRTL = this.element.closest('.feature-block').matches(':nth-child(even)');
+    this.featureType = this.element.closest('.feature-block').dataset.featureType || '';
+    
+    this.init();
+  }
+
+  init() {
+    this.carouselContainer = this.element.querySelector('.carousel-container');
+    this.loadImages();
+    
+    this.themeToggle = this.element.querySelector('.theme-toggle');
+    this.themeToggle.addEventListener('click', () => this.toggleTheme());
+    
+    this.startAutoPlay();
+    
+    this.element.addEventListener('mouseenter', () => this.stopAutoPlay());
+    this.element.addEventListener('mouseleave', () => this.startAutoPlay());
+  }
+
+  loadImages() {
+    this.carouselContainer.innerHTML = '';
+    const currentImages = this.images[this.currentTheme];
+    
+    currentImages.forEach((src, index) => {
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = 'Feature Preview';
+      img.loading = 'lazy';
+      img.classList.add('clickable-preview');
+      img.dataset.index = index;
+      img.dataset.theme = this.currentTheme;
+      img.dataset.featureType = this.featureType;
+      
+      // Add click event to open gallery
+      img.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.openGallery(index);
+      });
+      
+      this.carouselContainer.appendChild(img);
+    });
+    
+    // Immediately update carousel to maintain current position
+    this.updateCarousel();
+  }
+
+  openGallery(index) {
+    // Create URL with query parameters
+    const galleryUrl = new URL('/gallery.html', window.location.origin);
+    galleryUrl.searchParams.append('feature', this.featureType);
+    galleryUrl.searchParams.append('theme', this.currentTheme);
+    galleryUrl.searchParams.append('index', index);
+    
+    // Open in new tab
+    window.open(galleryUrl.toString(), '_blank');
+  }
+
+  updateCarousel() {
+    const offset = this.currentIndex * 100;
+    // Apply transform based on direction
+    this.carouselContainer.style.transform = this.isRTL ? 
+      `translateX(${offset}%)` : 
+      `translateX(-${offset}%)`;
+  }
+
+  toggleTheme() {
+    // Keep track of current theme and position
+    const previousTheme = this.currentTheme;
+    const previousImages = this.images[previousTheme];
+    
+    // Switch theme
+    this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+    this.element.dataset.theme = this.currentTheme;
+    this.themeToggle.dataset.theme = this.currentTheme;
+    this.loadImages();
+  }
+
+  startAutoPlay() {
+    this.autoPlayInterval = setInterval(() => {
+      this.currentIndex = (this.currentIndex + 1) % this.images[this.currentTheme].length;
+      this.updateCarousel();
+    }, 3000);
+  }
+
+  stopAutoPlay() {
+    clearInterval(this.autoPlayInterval);
+  }
+}
+
+// Initialize feature previews with image paths and feature types
+const featurePreviews = {
+  chat: {
+    light: [
+      '/images/chat/light-1.png',
+      '/images/chat/light-2.png',
+      '/images/chat/light-3.png'
+    ],
+    dark: [
+      '/images/chat/dark-1.png',
+      '/images/chat/dark-2.png',
+      '/images/chat/dark-3.png'
+    ],
+    captions: [
+      'Get summarized insights from all models',
+      'Combine model response for accuracy',
+      'Chat with multiple AI models simultaneously',
+    ]
+  },
+  image: {
+    light: [
+      '/images/image/light-1.png',
+      '/images/image/light-2.png',
+    ],
+    dark: [
+      '/images/image/dark-1.png',
+      '/images/image/dark-2.png',
+    ],
+    captions: [
+      'Generate images with multiple AI models',
+      'Generate images with multiple AI models',
+    ]
+  },
+  audio: {
+    light: [
+      '/images/audio/light-1.png',
+    ],
+    dark: [
+      '/images/audio/dark-1.png',
+    ],
+    captions: [
+      'Convert text to speech with natural-sounding voices'
+    ]
+  },
+  video: {
+    light: [
+      '/images/video/light-1.png',
+    ],
+    dark: [
+      '/images/video/dark-1.png',
+    ],
+    captions: [
+      'Create videos from text prompts with AI'
+    ]
+  },
+};
+
+// Initialize all feature previews
+document.querySelectorAll('.feature-preview').forEach((element, index) => {
+  const featureType = ['chat', 'image', 'audio', 'video'][index];
+  element.closest('.feature-block').dataset.featureType = featureType;
+  new FeaturePreview(element, featurePreviews[featureType]);
+});
