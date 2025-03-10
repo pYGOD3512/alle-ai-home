@@ -1360,3 +1360,62 @@ footer {
   }
 }
 
+/* Media queries for modal navigation on small screens */
+@media (max-width: 768px) {
+  /* Hide side navigation buttons on small screens for image modal */
+  .modal-side-prev, 
+  .modal-side-next {
+    display: none;
+  }
+  
+  /* Adjust thumbnails for better mobile experience */
+  .modal-thumbnails {
+    max-width: 100%;
+    padding: 0.3rem;
+  }
+  
+  .modal-thumbnail {
+    width: 40px;
+    height: 40px;
+  }
+  
+  /* Adjust video modal elements for small screens */
+  .demo-video-close {
+    top: 10px;
+    right: 10px;
+  }
+  
+  .demo-video-content {
+    width: 95%;
+  }
+  
+  /* Make caption smaller on mobile */
+  .modal-caption,
+  .demo-video-caption {
+    font-size: 0.9rem;
+    padding: 6px 12px;
+  }
+}
+
+/* For very small screens, further adjustments */
+@media (max-width: 480px) {
+  .modal-navigation {
+    display: none; /* Hide bottom navigation on very small screens */
+  }
+  
+  .modal-thumbnails {
+    bottom: 0.5rem;
+  }
+  
+  .modal-close,
+  .demo-video-close {
+    width: 35px;
+    height: 35px;
+    font-size: 1.5rem;
+  }
+  
+  .demo-video-side-nav {
+    bottom: 10px;
+  }
+}
+
