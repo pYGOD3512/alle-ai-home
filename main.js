@@ -404,8 +404,8 @@ class FeaturePreview {
   }
 
   openGallery(index) {
-    // Create URL with query parameters
-    const galleryUrl = new URL('/gallery.html', window.location.origin);
+    // Instead of using a separate HTML file, use query parameters on the main page
+    const galleryUrl = new URL('/gallery', window.location.origin);
     galleryUrl.searchParams.append('feature', this.featureType);
     galleryUrl.searchParams.append('theme', this.currentTheme);
     galleryUrl.searchParams.append('index', index);
