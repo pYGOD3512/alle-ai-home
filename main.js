@@ -310,44 +310,10 @@ $(document).ready(function() {
   })
 })
 
+// Remove the video modal event listeners and related code
 document.addEventListener('DOMContentLoaded', function() {
-  const modal = document.getElementById('demo-modal');
-  const demoButton = document.querySelector('.secondary-button');
-  const closeModal = document.querySelector('.close-modal');
-  const youtubeFrame = document.getElementById('youtube-frame');
-  const videoUrl = 'https://www.youtube.com/embed/8jI8x8_Vh5U';
-
-  // Open modal
-  demoButton.addEventListener('click', function() {
-    modal.style.display = 'block';
-    youtubeFrame.src = videoUrl;
-    document.body.style.overflow = 'hidden'; // Prevent scrolling
-  });
-
-  // Close modal
-  closeModal.addEventListener('click', function() {
-    modal.style.display = 'none';
-    youtubeFrame.src = ''; // Stop video when closing
-    document.body.style.overflow = ''; // Restore scrolling
-  });
-
-  // Close modal when clicking outside
-  window.addEventListener('click', function(event) {
-    if (event.target === modal) {
-      modal.style.display = 'none';
-      youtubeFrame.src = ''; // Stop video when closing
-      document.body.style.overflow = ''; // Restore scrolling
-    }
-  });
-
-  // Close modal with Escape key
-  document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape' && modal.style.display === 'block') {
-      modal.style.display = 'none';
-      youtubeFrame.src = ''; // Stop video when closing
-      document.body.style.overflow = ''; // Restore scrolling
-    }
-  });
+  // Initialize the image modal after DOM content is loaded
+  setTimeout(initImageModal, 1000);
 });
 
 class FeaturePreview {
@@ -390,10 +356,27 @@ class FeaturePreview {
       img.dataset.theme = this.currentTheme;
       img.dataset.featureType = this.featureType;
       
-      // Add click event to open gallery
-      img.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.openGallery(index);
+      // Add click event listener directly to each image
+      img.addEventListener('click', function() {
+        const featureType = this.dataset.featureType;
+        const index = parseInt(this.dataset.index || 0);
+        const theme = this.dataset.theme || 'light';
+        
+        if (!featurePreviews[featureType]) {
+          console.error(`Feature type "${featureType}" not found in featurePreviews`);
+          return;
+        }
+        
+        const images = featurePreviews[featureType][theme];
+        const captions = featurePreviews[featureType].captions || [];
+        
+        // Find the modal elements
+        const modal = document.querySelector('.feature-modal');
+        if (modal && typeof openModal === 'function') {
+          openModal(images, index, captions);
+        } else {
+          console.error('Modal elements or openModal function not found');
+        }
       });
       
       this.carouselContainer.appendChild(img);
@@ -401,17 +384,6 @@ class FeaturePreview {
     
     // Immediately update carousel to maintain current position
     this.updateCarousel();
-  }
-
-  openGallery(index) {
-    // Instead of using a separate HTML file, use query parameters on the main page
-    const galleryUrl = new URL('/gallery', window.location.origin);
-    galleryUrl.searchParams.append('feature', this.featureType);
-    galleryUrl.searchParams.append('theme', this.currentTheme);
-    galleryUrl.searchParams.append('index', index);
-    
-    // Open in new tab
-    window.open(galleryUrl.toString(), '_blank');
   }
 
   updateCarousel() {
@@ -444,6 +416,222 @@ class FeaturePreview {
   stopAutoPlay() {
     clearInterval(this.autoPlayInterval);
   }
+}
+
+// Add a modal to the DOM
+function createImageModal() {
+  const modalHTML = `
+    <div class="feature-modal">
+      <span class="modal-close">&times;</span>
+      <div class="modal-content">
+        <img src="" class="modal-image" />
+        <p class="modal-caption"></p>
+        <div class="modal-navigation">
+          <span class="modal-counter">1/1</span>
+        </div>
+      </div>
+      <div class="modal-side-nav">
+        <button type="button" class="modal-side-prev">
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <button type="button" class="modal-side-next">
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-thumbnails"></div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  return {
+    modal: document.querySelector('.feature-modal'),
+    close: document.querySelector('.modal-close'),
+    image: document.querySelector('.modal-image'),
+    caption: document.querySelector('.modal-caption'),
+    counter: document.querySelector('.modal-counter'),
+    sidePrev: document.querySelector('.modal-side-prev'),
+    sideNext: document.querySelector('.modal-side-next'),
+    thumbnails: document.querySelector('.modal-thumbnails')
+  };
+}
+
+// Function to close the modal
+function closeModal() {
+  const modal = document.querySelector('.feature-modal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.body.style.overflow = ''; // Restore scrolling
+    
+    // Remove swipe detection
+    removeSwipeDetection();
+  }
+}
+
+// Function to go to the next image
+function goToNext() {
+  if (currentIndex < currentImages.length - 1) {
+    currentIndex++;
+  } else {
+    currentIndex = 0; // Loop back to the first image
+  }
+  updateModalContent();
+}
+
+// Function to go to the previous image
+function goToPrevious() {
+  if (currentIndex > 0) {
+    currentIndex--;
+  } else {
+    currentIndex = currentImages.length - 1; // Loop to the last image
+  }
+  updateModalContent();
+}
+
+// Initialize the image modal functionality
+function initImageModal() {
+  // Create modal elements
+  const modal = createImageModal();
+  
+  // Current state for the modal - make these globally accessible
+  window.currentImages = [];
+  window.currentIndex = 0;
+  window.currentCaptions = [];
+  
+  // Function to update modal content
+  window.updateModalContent = function() {
+    modal.image.src = currentImages[currentIndex];
+    modal.caption.textContent = currentCaptions[currentIndex] || '';
+    modal.counter.textContent = `${currentIndex + 1}/${currentImages.length}`;
+    
+    // Position the modal content in the current viewport
+    const viewportHeight = window.innerHeight;
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+    // Center the modal content in the current viewport
+    modal.modal.style.top = `${scrollTop}px`;
+    modal.content = modal.modal.querySelector('.modal-content');
+    modal.content.style.maxHeight = `${viewportHeight * 0.9}px`;
+    
+    // Update thumbnails to highlight current image
+    const thumbnailElements = modal.thumbnails.querySelectorAll('.modal-thumbnail');
+    thumbnailElements.forEach((thumb, idx) => {
+      if (idx === currentIndex) {
+        thumb.classList.add('active');
+      } else {
+        thumb.classList.remove('active');
+      }
+    });
+  };
+  
+  // Function to generate thumbnails
+  function generateThumbnails() {
+    modal.thumbnails.innerHTML = '';
+    
+    currentImages.forEach((src, idx) => {
+      const thumbnail = document.createElement('div');
+      thumbnail.className = 'modal-thumbnail';
+      if (idx === currentIndex) thumbnail.classList.add('active');
+      
+      const thumbImg = document.createElement('img');
+      thumbImg.src = src;
+      thumbImg.alt = currentCaptions[idx] || `Image ${idx + 1}`;
+      
+      thumbnail.appendChild(thumbImg);
+      thumbnail.addEventListener('click', function() {
+        currentIndex = idx;
+        updateModalContent();
+      });
+      
+      modal.thumbnails.appendChild(thumbnail);
+    });
+  }
+  
+  // Make openModal function globally available
+  window.openModal = function(images, index, captions) {
+    currentImages = images;
+    currentIndex = index;
+    currentCaptions = captions || [];
+    
+    generateThumbnails();
+    updateModalContent();
+    modal.modal.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Prevent scrolling
+    
+    // Add swipe detection for mobile
+    setupSwipeDetection();
+  };
+  
+  // Setup swipe detection for mobile
+  let touchStartX = 0;
+  let touchEndX = 0;
+  
+  function handleTouchStart(e) {
+    touchStartX = e.changedTouches[0].screenX;
+  }
+  
+  function handleTouchEnd(e) {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+  }
+  
+  function handleSwipe() {
+    const swipeThreshold = 50;
+    if (touchEndX < touchStartX - swipeThreshold) {
+      // Swipe left, go to next
+      goToNext();
+    } else if (touchEndX > touchStartX + swipeThreshold) {
+      // Swipe right, go to previous
+      goToPrevious();
+    }
+  }
+  
+  window.setupSwipeDetection = function() {
+    modal.modal.addEventListener('touchstart', handleTouchStart, false);
+    modal.modal.addEventListener('touchend', handleTouchEnd, false);
+  };
+  
+  window.removeSwipeDetection = function() {
+    modal.modal.removeEventListener('touchstart', handleTouchStart);
+    modal.modal.removeEventListener('touchend', handleTouchEnd);
+  };
+  
+  // Event listeners for modal controls
+  modal.close.addEventListener('click', function() {
+    closeModal();
+  });
+  
+  modal.sidePrev.addEventListener('click', function() {
+    goToPrevious();
+  });
+  
+  modal.sideNext.addEventListener('click', function() {
+    goToNext();
+  });
+  
+  // Close modal when clicking outside the image
+  modal.modal.addEventListener('click', function(e) {
+    if (e.target === modal.modal) {
+      closeModal();
+    }
+  });
+  
+  // Keyboard navigation
+  document.addEventListener('keydown', function(e) {
+    if (!modal.modal.classList.contains('active')) return;
+    
+    if (e.key === 'ArrowLeft') {
+      goToPrevious();
+    } else if (e.key === 'ArrowRight') {
+      goToNext();
+    } else if (e.key === 'Escape') {
+      closeModal();
+    }
+  });
 }
 
 // Initialize feature previews with image paths and feature types
@@ -508,4 +696,107 @@ document.querySelectorAll('.feature-preview').forEach((element, index) => {
   const featureType = ['chat', 'image', 'audio', 'video'][index];
   element.closest('.feature-block').dataset.featureType = featureType;
   new FeaturePreview(element, featurePreviews[featureType]);
+});
+
+// Create a completely separate video modal
+function createDemoVideoModal() {
+  // Check if modal already exists to prevent duplicates
+  if (document.querySelector('.demo-video-modal')) {
+    return document.querySelector('.demo-video-modal');
+  }
+  
+  const videoModalHTML = `
+    <div class="demo-video-modal">
+      <span class="demo-video-close">&times;</span>
+      <div class="demo-video-content">
+        <div class="demo-video-container">
+          <iframe id="demo-youtube-frame"
+            width="560"
+            height="315"
+            src=""
+            title="Alle-AI Demo Video"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+      <div class="demo-video-side-nav">
+        <div class="demo-video-caption">Alle-AI Demo Video</div>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', videoModalHTML);
+  
+  return document.querySelector('.demo-video-modal');
+}
+
+// Setup video modal functionality
+function setupDemoVideoModal() {
+  const videoModal = createDemoVideoModal();
+  const videoFrame = document.getElementById('demo-youtube-frame');
+  const closeButton = videoModal.querySelector('.demo-video-close');
+  const videoUrl = 'https://www.youtube.com/embed/8jI8x8_Vh5U?autoplay=1';
+  
+  // Function to open video modal
+  function openDemoVideo() {
+    console.log('Opening video modal');
+    
+    // Position the modal at the current scroll position
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    videoModal.style.top = `${scrollTop}px`;
+    videoModal.style.left = '0';
+    
+    // Set the height based on viewport
+    const viewportHeight = window.innerHeight;
+    videoModal.style.height = `${viewportHeight}px`;
+    
+    // Load the video and show the modal
+    videoFrame.src = videoUrl;
+    videoModal.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Prevent scrolling
+  }
+  
+  // Function to close video modal
+  function closeDemoVideo() {
+    console.log('Closing video modal');
+    videoModal.classList.remove('active');
+    setTimeout(() => {
+      videoFrame.src = ''; // Stop video when closing, with a slight delay
+    }, 300);
+    document.body.style.overflow = ''; // Restore scrolling
+  }
+  
+  // Event listeners
+  closeButton.addEventListener('click', closeDemoVideo);
+  
+  // Close modal when clicking outside the video
+  videoModal.addEventListener('click', function(e) {
+    if (e.target === videoModal) {
+      closeDemoVideo();
+    }
+  });
+  
+  // Keyboard navigation
+  document.addEventListener('keydown', function(e) {
+    if (videoModal.classList.contains('active') && e.key === 'Escape') {
+      closeDemoVideo();
+    }
+  });
+  
+  return openDemoVideo;
+}
+
+// Initialize the demo video button
+document.addEventListener('DOMContentLoaded', function() {
+  // This is a separate event listener that won't interfere with the image modal
+  const demoButton = document.querySelector('.secondary-button');
+  if (demoButton) {
+    const openDemoVideo = setupDemoVideoModal();
+    demoButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      openDemoVideo();
+    });
+  }
 });
