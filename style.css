@@ -13,6 +13,13 @@
   box-sizing: border-box;
 }
 
+/* Fix for extra white space below footer */
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   line-height: 1.6;
@@ -20,6 +27,8 @@ body {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(245, 245, 245, 0.8));
   min-height: 100vh;
   backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
 }
 
 /* Navigation */
@@ -396,6 +405,9 @@ footer {
   background-color: var(--primary-color);
   color: var(--secondary-color);
   padding: 2rem;
+  margin-top: auto;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .footer-container {
@@ -1417,5 +1429,14 @@ footer {
   .demo-video-side-nav {
     bottom: 10px;
   }
+}
+
+/* If you have a container or wrapper around your content */
+.container, 
+#app, 
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
