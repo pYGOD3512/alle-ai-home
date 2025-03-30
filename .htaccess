@@ -1,0 +1,11 @@
+RewriteEngine On
+
+RewriteBase /
+RewriteRule ^demo$ https://www.youtube.com/watch?v=HkYy47ZLSK0 [R=302,L]
+RewriteRule ^pitch-deck$ https://drive.google.com/drive/u/1/folders/1orjDUOzlICIOj7B5FRTv-NKe2YZf843d [R=301,L]
+
+RewriteRule ^demo/$ https://www.youtube.com/watch?v=HkYy47ZLSK0 [R=302,L]
+RewriteRule ^pitch-deck/$ https://drive.google.com/drive/u/1/folders/1orjDUOzlICIOj7B5FRTv-NKe2YZf843d [R=301,L]
+
+
+DirectoryIndex index.html

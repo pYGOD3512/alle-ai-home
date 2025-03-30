@@ -314,6 +314,18 @@ $(document).ready(function() {
 document.addEventListener('DOMContentLoaded', function() {
   // Initialize the image modal after DOM content is loaded
   setTimeout(initImageModal, 1000);
+
+  // Check if the URL path is /demo or /pitchdeck
+  const path = window.location.pathname;
+  
+  // Normalize the path by removing trailing slashes and converting to lowercase
+  const normalizedPath = path.replace(/\/$/, '').toLowerCase();
+  
+  if (normalizedPath === '/demo') {
+    window.location.href = 'https://www.youtube.com/watch?v=HkYy47ZLSK0';
+  } else if (normalizedPath === '/pitchdeck' || normalizedPath === '/pitch-deck') {
+    window.location.href = 'https://drive.google.com/drive/u/1/folders/1orjDUOzlICIOj7B5FRTv-NKe2YZf843d';
+  }
 });
 
 class FeaturePreview {
@@ -649,7 +661,7 @@ const featurePreviews = {
     ],
     captions: [
       'Get summarized insights from all models',
-      'Combine model response for accuracy',
+      'Combined model response for accuracy',
       'Chat with multiple AI models simultaneously',
     ]
   },
@@ -737,7 +749,7 @@ function setupDemoVideoModal() {
   const videoModal = createDemoVideoModal();
   const videoFrame = document.getElementById('demo-youtube-frame');
   const closeButton = videoModal.querySelector('.demo-video-close');
-  const videoUrl = 'https://www.youtube.com/embed/8jI8x8_Vh5U?autoplay=1';
+  const videoUrl = 'https://www.youtube.com/embed/HkYy47ZLSK0?autoplay=1';
   
   // Function to open video modal
   function openDemoVideo() {
